@@ -214,124 +214,134 @@
   </v-card>
 </template>
 
-<script>
-import { mapState, mapGetters } from 'vuex';
-import { loggedIn, user } from '@/rest';
+<script lang="ts">
+import {
+  defineComponent, ref, computed, watch, Ref, ComputedRef,
+} from '@vue/composition-api';
+
+import { loggedIn as loggedInFunc, user as userFunc } from '@/rest';
+import { User, Version } from '@/types';
 import moment from 'moment';
 import filesize from 'filesize';
 
 import { draftVersion } from '@/utils/constants';
+import { RawLocation } from 'vue-router';
 import DandisetOwnersDialog from './DandisetOwnersDialog.vue';
 
-export default {
+export default defineComponent({
   name: 'DandisetDetails',
   components: {
     DandisetOwnersDialog,
   },
-  data() {
-    return {
-      rowClasses: 'my-1',
-      labelClasses: 'mx-2 text--secondary',
-      itemClasses: 'font-weight-medium',
-      ownerDialog: false,
-      ownerDialogKey: 0,
-    };
-  },
-  computed: {
-    user,
-    loggedIn,
-    created() {
-      return this.formatDateTime(this.currentDandiset.created);
-    },
-    lastModified() {
-      return this.formatDateTime(this.currentDandiset.modified);
-    },
-    contactName() {
-      return this.currentDandiset?.contact_person;
-    },
-    currentDandiset() {
-      return this.publishDandiset;
-    },
-    draftDandiset() {
-      return this.currentVersion === draftVersion;
-    },
-    manageOwnersDisabled() {
-      if (!this.loggedIn || !this.owners) return true;
-      return !this.owners.find((owner) => owner.username === this.user.username);
-    },
-    limitedOwners() {
-      if (!this.owners) return [];
-      return this.owners.slice(0, 5);
-    },
-    numExtraOwners() {
-      if (!this.owners) return 0;
-      return this.owners.length - this.limitedOwners.length;
-    },
-    formattedSize() {
-      const { stats } = this;
-      if (!stats) {
-        return undefined;
-      }
-      return filesize(stats.size, { round: 1, base: 10, standard: 'iec' });
-    },
-    versions() {
-      return this.publishedVersions || [];
-    },
-    ...mapState('dandiset', {
-      publishDandiset: (state) => state.publishDandiset,
-      owners: (state) => state.owners,
-      publishedVersions: (state) => state.versions,
-    }),
-    ...mapGetters('dandiset', {
-      currentVersion: 'version',
-    }),
-  },
-  asyncComputed: {
-    async stats() {
-      const { asset_count, size } = this.currentDandiset;
-      return { asset_count, size };
-    },
-  },
-  watch: {
-    ownerDialog() {
-      // This is incremented to force re-render of the owner dialog
-      this.ownerDialogKey += 1;
-    },
-  },
-  methods: {
-    setVersion({ version }) {
-      this.setRouteVersion(version);
-    },
-    setRouteVersion(newVersion) {
-      const version = newVersion || draftVersion;
+  setup(props, ctx) {
+    // constants used by the template
+    const rowClasses = 'my-1';
+    const labelClasses = 'mx-2 text--secondary';
+    const itemClasses = 'font-weight-medium';
+    const ownerDialog = ref(false);
+    const ownerDialogKey = ref(0);
 
-      if (this.$route.params.version !== version) {
-        this.$router.replace({
-          ...this.$route,
-          params: {
-            ...this.$route.params,
-            version,
-          },
-        });
+    const store = ctx.root.$store;
+
+    const currentDandiset: ComputedRef<Version> = computed(
+      () => store.state.dandiset.publishDandiset,
+    );
+    const owners: ComputedRef<User[]> = computed(() => store.state.dandiset.owners);
+    const versions: ComputedRef<Version[]> = computed(
+      () => store.state.dandiset.versions,
+    );
+    const currentVersion: ComputedRef<Version> = computed(
+      () => store.getters['dandiset/version'],
+    );
+
+    const stats: Ref<any> = ref(null);
+    watch(currentDandiset, async () => {
+      if (currentDandiset.value) {
+        const { asset_count, size } = currentDandiset.value;
+        stats.value = { asset_count, size };
       }
-    },
-    formatDateTime(datetimeStr) {
+    }, { immediate: true });
+
+    function formatDateTime(datetimeStr: string): string {
       const datetime = moment(datetimeStr);
       const date = datetime.format('LL');
       const time = datetime.format('hh:mm A');
 
       return `${date} at ${time}`;
-    },
-    timelineVersionItemColor({ version }) {
-      const { publishDandiset } = this;
+    }
 
-      if (publishDandiset && version === publishDandiset.version) { return 'primary'; }
-      if (!publishDandiset && version === draftVersion) {
+    const user: ComputedRef<User|null> = computed(userFunc);
+    const loggedIn = computed(loggedInFunc);
+    const created = computed(() => formatDateTime(currentDandiset.value.created));
+    const lastModified = computed(() => formatDateTime(currentDandiset.value.modified));
+    const contactName = computed(() => currentDandiset.value.dandiset.contact_person);
+    const draftDandiset = computed(() => currentVersion.value.version === draftVersion);
+    const manageOwnersDisabled: ComputedRef<boolean> = computed(() => {
+      if (!loggedIn || !owners.value) return true;
+      return !owners.value.find((owner: User) => owner.username === user.value?.username);
+    });
+    const limitedOwners: ComputedRef<User[]> = computed(() => {
+      if (!owners.value) return [];
+      return owners.value.slice(0, 5);
+    });
+    const numExtraOwners: ComputedRef<number> = computed(() => {
+      if (!owners.value) return 0;
+      return owners.value.length - limitedOwners.value.length;
+    });
+    const formattedSize: ComputedRef<string|undefined> = computed(() => {
+      if (!stats.value) {
+        return undefined;
+      }
+      return filesize(stats.value.size, { round: 1, base: 10, standard: 'iec' });
+    });
+
+    function setVersion({ version: newVersion }: any) {
+      const version = newVersion || draftVersion;
+
+      if (ctx.root.$route.params.version !== version) {
+        ctx.root.$router.replace({
+          ...ctx.root.$route,
+          params: {
+            ...ctx.root.$route.params,
+            version,
+          },
+        } as RawLocation);
+      }
+    }
+
+    function timelineVersionItemColor({ version }: any): string {
+      if (currentDandiset.value && version === currentDandiset.value.version) { return 'primary'; }
+      if (!currentDandiset.value && version === draftVersion) {
         return 'amber darken-4';
       }
 
       return 'grey';
-    },
+    }
+
+    return {
+      rowClasses,
+      labelClasses,
+      itemClasses,
+      ownerDialog,
+      ownerDialogKey,
+      currentDandiset,
+      owners,
+      versions,
+      currentVersion,
+      stats,
+      user,
+      loggedIn,
+      created,
+      lastModified,
+      contactName,
+      draftDandiset,
+      manageOwnersDisabled,
+      limitedOwners,
+      numExtraOwners,
+      formattedSize,
+      setVersion,
+      timelineVersionItemColor,
+    };
   },
-};
+});
 </script>
