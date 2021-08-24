@@ -25,7 +25,7 @@ export interface Version {
   created: string,
   modified: string,
   dandiset: Dandiset,
-  metadata?: object,
+  metadata?: any, // structure of this is dictated by the metadata schema
 }
 
 export interface Asset {
