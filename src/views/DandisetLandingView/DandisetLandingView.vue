@@ -56,16 +56,19 @@
   </div>
 </template>
 
-<script>
-import { mapState } from 'vuex';
+<script lang="ts">
+import {
+  defineComponent, ref, computed, watchEffect, watch, Ref, ComputedRef,
+} from '@vue/composition-api';
 
 import DandisetSearchField from '@/components/DandisetSearchField.vue';
-import { publishRest, user } from '@/rest';
+import { publishRest, user as userFunc } from '@/rest';
+import { Version } from '@/types';
 import Meditor from './Meditor.vue';
 import DandisetMain from './DandisetMain.vue';
 import DandisetDetails from './DandisetDetails.vue';
 
-export default {
+export default defineComponent({
   name: 'DandisetLandingView',
   components: {
     Meditor,
@@ -84,89 +87,81 @@ export default {
       default: null,
     },
   },
-  data() {
-    return {
-      edit: false,
-      readonly: false,
-    };
-  },
-  computed: {
-    currentDandiset() {
-      return this.publishDandiset;
-    },
-    meta() {
-      if (this.publishDandiset) {
-        return this.publishDandiset.metadata;
-      }
+  setup(props, ctx) {
+    const { identifier: identifierProp, version: versionProp } = props;
+    const identifier: Ref<string> = ref(identifierProp);
+    const version: Ref<string|null> = ref(versionProp);
 
-      return {};
-    },
-    ...mapState('dandiset', {
-      publishDandiset: (state) => state.publishDandiset,
-      loading: (state) => state.loading,
-      dandisetVersions: (state) => state.versions,
-      schema: (state) => state.schema,
-    }),
-    user,
-  },
-  asyncComputed: {
-    userCanModifyDandiset: {
-      async get() {
-        // published versions are never editable
-        if (this.publishDandiset?.metadata.version !== 'draft') {
-          return false;
-        }
+    const store = ctx.root.$store;
 
-        if (!this.user) {
-          return false;
-        }
+    const currentDandiset: ComputedRef<Version> = computed(
+      () => store.state.dandiset.publishDandiset,
+    );
+    const loading: ComputedRef<boolean> = computed(() => store.state.dandiset.loading);
+    const dandisetVersions: ComputedRef<Version[]> = computed(() => store.state.dandiset.versions);
+    const schema = computed(() => store.state.dandiset.schema);
+    const user = computed(userFunc);
+    const meta = computed(() => (currentDandiset.value ? currentDandiset.value.metadata : {}));
 
-        if (this.user.admin) {
-          return true;
-        }
+    const edit: Ref<boolean> = ref(false);
+    const readonly: Ref<boolean> = ref(false);
 
-        const { identifier } = this.publishDandiset.dandiset;
-        const { data: owners } = await publishRest.owners(identifier);
-        const userExists = owners.find((owner) => owner.username === this.user.username);
-        return !!userExists;
-      },
-      default: false,
-    },
-  },
-  watch: {
-    identifier: {
-      immediate: true,
-      async handler(identifier) {
-        const { version } = this;
-        await this.$store.dispatch('dandiset/initializeDandisets', { identifier, version });
-        // TODO: check for invalid versions here
-      },
-    },
-    async version(version) {
-      // On version change, fetch the new dandiset (not initial)
-      const { identifier } = this;
-      await this.$store.dispatch('dandiset/fetchPublishDandiset', { identifier, version });
-      // If the above await call didn't result in publishDandiset being set, navigate to a default
-      if (!this.publishDandiset) {
-        // Omitting version will fetch the most recent version instead
-        await this.$store.dispatch('dandiset/fetchPublishDandiset', { identifier });
-        this.navigateToVersion(this.publishDandiset.version);
-      }
-    },
-  },
-  methods: {
-    navigateToVersion(version) {
-      if (this.$route.params.version === version) return;
+    function navigateToVersion(versionToNavigateTo: string) {
+      if (ctx.root.$route.params.version === versionToNavigateTo) return;
 
-      const route = {
-        ...this.$route,
+      const route: any = {
+        ...ctx.root.$route,
         params: {
-          ...this.$route.params,
-          version,
+          ...ctx.root.$route.params,
+          versionToNavigateTo,
         },
       };
-      this.$router.replace(route);
-    },
+      ctx.root.$router.replace(route);
+    }
+
+    const userCanModifyDandiset: Ref<boolean> = ref(false);
+
+    watchEffect(async () => {
+      // published versions are never editable
+      if (currentDandiset.value?.metadata?.version !== 'draft' || !user) {
+        userCanModifyDandiset.value = false;
+      } else if (user.value?.admin) {
+        userCanModifyDandiset.value = true;
+      } else {
+        const { data: owners } = await publishRest.owners(identifier.value);
+        const userExists = owners.find((owner) => owner.username === user.value?.username);
+        userCanModifyDandiset.value = !!userExists;
+      }
+    });
+
+    watch(identifier, async () => {
+      if (identifier.value) {
+        await store.dispatch('dandiset/initializeDandisets', { identifier: identifier.value, version: version.value });
+      }
+    }, { immediate: true });
+
+    watchEffect(async () => {
+      // On version change, fetch the new dandiset (not initial)
+      await store.dispatch('dandiset/fetchPublishDandiset', { identifier: identifier.value, version: version.value });
+      // If the above await call didn't result in publishDandiset being set, navigate to a default
+      if (!currentDandiset) {
+        // Omitting version will fetch the most recent version instead
+        await store.dispatch('dandiset/fetchPublishDandiset', { identifier: identifier.value });
+        navigateToVersion((currentDandiset as Version).version);
+      }
+    });
+
+    return {
+      currentDandiset,
+      loading,
+      dandisetVersions,
+      schema,
+      user,
+      userCanModifyDandiset,
+      edit,
+      readonly,
+      meta,
+    };
   },
-};
+});
 </script>
