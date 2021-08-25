@@ -22,13 +22,13 @@
       <v-container
         v-if="currentDandiset"
         fluid
-        class="grey lighten-4"
+        class="grey lighten-4 pa-0"
       >
         <v-progress-linear
           v-if="!currentDandiset || loading"
           indeterminate
         />
-        <v-row>
+        <v-row no-gutters>
           <v-col>
             <DandisetMain
               :schema="schema"
@@ -39,7 +39,7 @@
           </v-col>
           <v-col
             v-if="!$vuetify.breakpoint.smAndDown"
-            cols="3"
+            cols="2"
           >
             <DandisetDetails />
           </v-col>

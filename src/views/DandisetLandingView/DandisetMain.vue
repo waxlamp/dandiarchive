@@ -116,7 +116,7 @@
 
 <script lang="ts">
 import {
-  defineComponent, ref, computed, watch, ComputedRef,
+  defineComponent, ref, computed, ComputedRef,
 } from '@vue/composition-api';
 
 import moment from 'moment';
@@ -197,7 +197,6 @@ export default defineComponent({
     },
   },
   setup(props, ctx) {
-    const { schema, meta, userCanModifyDandiset } = props;
     const titleClasses = 'mx-1';
     const mainFields = ['name', 'description', 'identifier'];
 
@@ -212,19 +211,11 @@ export default defineComponent({
     const user: ComputedRef<User|null> = computed(userFunc);
     const loggedIn: ComputedRef<boolean> = computed(loggedInFunc);
 
-    const contributers = computed(
-      () => meta.contributor.filter(
-        (author: any) => author.schemaKey === 'Person' && author.includeInCitation,
-      ).map((author: any) => author.name), // TODO: just map it to author's name for now
-    );
-
     const currentTab = ref(null);
 
     function formatDate(date: string) {
       return moment(date).format('LL');
     }
-
-    watch(currentTab, () => console.log(currentTab.value));
 
     return {
       titleClasses,
@@ -233,7 +224,6 @@ export default defineComponent({
       versions,
       user,
       loggedIn,
-      contributers,
       formatDate,
       currentTab,
       tabs,
