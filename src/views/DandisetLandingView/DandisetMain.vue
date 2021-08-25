@@ -1,367 +1,186 @@
 <template>
   <div>
-    <v-card class="pb-2">
-      <v-row
-        class="mx-2 font-weight-regular"
-        align="center"
-      >
-        <v-col>
-          Dandiset ID: {{ meta.id }}
-        </v-col>
-      </v-row>
+    <v-card
+      outlined
+    >
       <v-row class="mx-2 my-2">
         <v-col>
-          <h1 class="font-weight-regular">
+          <h1 class="font-weight-light">
             {{ meta.name }}
           </h1>
         </v-col>
       </v-row>
-      <v-row
-        class="mx-2"
-        align="center"
-      >
-        <v-col>
-          Get shareable link
-          <v-menu
-            offset-y
-            :close-on-content-click="false"
-            min-width="420"
-            max-width="420"
+      <v-row class="mx-1">
+        <v-col cols="3">
+          <v-chip
+            outlined
           >
-            <template #activator="{ on }">
-              <v-icon
-                color="primary"
-                v-on="on"
+            <v-row>
+              <v-col cols="6">
+                <span class="pr-3">ID: {{ currentDandiset.dandiset.identifier }}</span>
+              </v-col>
+              <v-col
+                cols="6"
+                class="orange lighten-4"
               >
-                mdi-link
-              </v-icon>
-            </template>
-            <v-card>
-              <CopyText
-                class="pa-2"
-                :text="permalink"
-                icon-hover-text="Copy permalink to clipboard"
-              />
-            </v-card>
-          </v-menu>
+                <span class="orange--text text--darken-4">
+                  {{ currentDandiset.version.toUpperCase() }}
+                </span>
+              </v-col>
+            </v-row>
+          </v-chip>
         </v-col>
-        <v-col v-if="meta.citation">
-          Cite as
-          <v-menu
-            offset-y
-            :close-on-content-click="false"
-            min-width="420"
-            max-width="420"
-          >
-            <template #activator="{ on }">
-              <v-icon
-                color="primary"
-                v-on="on"
-              >
-                mdi-comment-quote-outline
-              </v-icon>
-            </template>
-
-            <v-card>
-              <CopyText
-                class="pa-2"
-                :text="meta.citation"
-                :is-textarea="true"
-                icon-hover-text="Copy to clipboard"
-              />
-            </v-card>
-          </v-menu>
+        <v-col cols="3">
+          <span>
+            <v-icon class="grey--text text--lighten-1">mdi-account</v-icon>
+            Contact <strong>{{ currentDandiset.contact_person }}</strong>
+          </span>
         </v-col>
-        <DownloadDialog>
-          <template #activator="{ on }">
-            <v-btn
-              id="download"
-              text
-              v-on="on"
-            >
-              <v-icon
-                color="primary"
-                class="mr-2"
-              >
-                mdi-download
-              </v-icon>
-              Download
-              <v-icon>mdi-menu-down</v-icon>
-            </v-btn>
-          </template>
-        </DownloadDialog>
-        <v-btn
-          id="view-data"
-          :to="fileBrowserLink"
-          text
-        >
-          <v-icon
-            color="primary"
-            class="mr-2"
-          >
-            mdi-file-tree
-          </v-icon>
-          View Data
-        </v-btn>
-        <v-btn
-          id="view-edit-metadata"
-          text
-          @click="$emit('edit')"
-        >
-          <v-icon
-            color="primary"
-            class="mr-2"
-          >
-            {{ metadataButtonIcon }}
-          </v-icon>
-          {{ metadataButtonText }}
-        </v-btn>
-        <template v-if="publishDandiset.version === 'draft'">
-          <v-tooltip
-            left
-            :disabled="!publishDisabledMessage"
-          >
-            <template #activator="{ on }">
-              <div v-on="on">
-                <v-btn
-                  id="publish"
-                  text
-                  :disabled="publishDisabled || !user"
-                  @click="publish"
-                >
-                  <v-icon
-                    color="success"
-                    class="mr-2"
-                  >
-                    mdi-publish
-                  </v-icon>
-                  Publish
-                </v-btn>
-              </div>
-            </template>
-            <p
-              :style="{ whiteSpace: 'pre-line' }"
-              v-text="publishDisabledMessage"
-            />
-          </v-tooltip>
-          <v-menu
-            v-if="publishDandiset.version_validation_errors.length"
-            :nudge-width="200"
-            offset-y
-          >
-            <template #activator="{ on: menu, attrs }">
-              <v-tooltip bottom>
-                <template #activator="{ on: tooltip }">
-                  <v-btn
-                    v-bind="attrs"
-                    v-on="{ ...tooltip, ...menu }"
-                  >
-                    <v-icon
-                      color="error"
-                      class="mr-1"
-                    >
-                      mdi-clipboard-alert
-                    </v-icon>
-                    {{ publishDandiset.version_validation_errors.length }}
-                  </v-btn>
-                </template>
-                <span>Fix issues with metadata</span>
-              </v-tooltip>
-            </template>
-            <v-card class="pa-1">
-              <v-list
-                style="max-height: 200px"
-                class="overflow-y-auto"
-              >
-                <div
-                  v-for="(error, index) in publishDandiset.version_validation_errors"
-                  :key="index"
-                >
-                  <v-list-item>
-                    <v-list-item-icon>
-                      <v-icon>
-                        {{ getValidationErrorIcon(error.field) }}
-                      </v-icon>
-                    </v-list-item-icon>
-
-                    <v-list-item-content>
-                      {{ error.field }}: {{ error.message }}
-                    </v-list-item-content>
-                  </v-list-item>
-                  <v-divider />
-                </div>
-              </v-list>
-              <v-btn
-                color="primary"
-                @click="$emit('edit')"
-              >
-                Fix issues
-              </v-btn>
-            </v-card>
-          </v-menu>
-          <v-menu
-            v-if="publishDandiset.asset_validation_errors.length"
-            :nudge-width="300"
-            offset-y
-          >
-            <template #activator="{ on: menu, attrs }">
-              <v-tooltip bottom>
-                <template #activator="{ on: tooltip }">
-                  <v-btn
-                    v-bind="attrs"
-                    v-on="{ ...tooltip, ...menu }"
-                  >
-                    <v-icon
-                      color="error"
-                      class="mr-1"
-                    >
-                      mdi-database-alert
-                    </v-icon>
-                    {{ publishDandiset.asset_validation_errors.length }}
-                  </v-btn>
-                </template>
-                <span>Fix issues with assets</span>
-              </v-tooltip>
-            </template>
-            <v-card class="pa-1">
-              <v-list
-                style="max-height: 200px"
-                class="overflow-y-auto"
-              >
-                <div
-                  v-for="(error, index) in publishDandiset.asset_validation_errors"
-                  :key="index"
-                >
-                  <v-list-item>
-                    <v-list-item-icon>
-                      <v-icon>
-                        {{ getValidationErrorIcon(error.field) }}
-                      </v-icon>
-                    </v-list-item-icon>
-
-                    <v-list-item-content>
-                      {{ error.field }}: {{ error.message }}
-                    </v-list-item-content>
-                  </v-list-item>
-                  <v-divider />
-                </div>
-              </v-list>
-            </v-card>
-          </v-menu>
-        </template>
+        <v-col cols="3">
+          <span>
+            <v-icon class="grey--text text--lighten-1">mdi-calendar-range</v-icon>
+            Created <strong>{{ formatDate(currentDandiset.created) }}</strong>
+          </span>
+        </v-col>
+        <v-col cols="3">
+          <span>
+            <v-icon class="grey--text text--lighten-1">mdi-history</v-icon>
+            Last update <strong>{{ formatDate(currentDandiset.modified) }}</strong>
+          </span>
+        </v-col>
       </v-row>
 
       <v-divider />
-      <v-row
-        v-if="contributors.length"
-        class="mx-2"
-        align="center"
-      >
-        <v-col>
-          <span
-            v-for="author in contributors"
-            :key="author.name + author.identifier"
-          >
-            <a
-              v-if="author.identifier"
-              :href="author.identifier"
-              target="_blank"
-            >
-              <img
-                alt="ORCID logo"
-                src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png"
-                width="16"
-                height="16"
-              ></a>
-            <v-tooltip
-              v-if="author.affiliation"
-              top
-              color="black"
-            >
-              <template #activator="{ on }">
-                <span v-on="on">
-                  {{ author.name }}
-                </span>
-              </template>
-              <span>{{ author.affiliation }}</span>
-            </v-tooltip>
-            <span v-else> {{ author.name }}</span>
-          </span>
-        </v-col>
-      </v-row>
-      <v-row
-        v-if="meta.keywords"
-        class="mx-2"
-      >
-        <v-col>
-          <span
-            v-for="key in meta.keywords"
-            :key="key"
-          >
-            <v-chip
-              small
-              style="margin: 5px;"
-              class="grey darken-2 font-weight-bold white--text"
-            > {{ key }} </v-chip>
-          </span>
-        </v-col>
-      </v-row>
-      <v-row :class="titleClasses">
-        <v-card-title class="font-weight-regular">
-          Description
-        </v-card-title>
-      </v-row>
-      <v-row class="mx-1 mb-4 px-4 font-weight-light">
+
+      <v-row class="mx-1 my-4 px-4 font-weight-light">
         {{ meta.description }}
       </v-row>
-      <template v-for="key in Object.keys(extraFields).sort()">
-        <template v-if="renderData(extraFields[key], schema.properties[key])">
-          <v-divider :key="`${key}-divider`" />
-          <v-row
-            :key="`${key}-title`"
-            :class="titleClasses"
+
+      <v-row class="justify-center">
+        <v-col
+          cols="11"
+        >
+          <v-card
+            outlined
           >
-            <v-card-title class="font-weight-regular">
-              {{ schemaPropertiesCopy[key].title || key }}
-            </v-card-title>
-          </v-row>
-          <v-row
-            :key="key"
-            class="mx-2 mb-4"
-          >
-            <v-col class="py-0">
-              <ListingComponent
-                :field="key"
-                :schema="schema.properties[key]"
-                :data="extraFields[key]"
-              />
-            </v-col>
-          </v-row>
-        </template>
-      </template>
+            <v-card-text
+              v-if="meta.keywords"
+              style="border-bottom: thin solid rgba(0, 0, 0, 0.12);"
+            >
+              Keywords:
+              <v-chip
+                v-for="keyword in meta.keywords"
+                :key="keyword"
+                small
+                style="margin: 5px;"
+              >
+                {{ keyword }}
+              </v-chip>
+            </v-card-text>
+            <v-card-text>
+              License: {{ meta.license[0] }}
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <v-tabs
+        v-model="currentTab"
+        class="ml-3"
+        show-arrows
+      >
+        <v-tabs-slider />
+
+        <v-tab
+          v-for="(tab, index) in tabs"
+          :key="tab.name"
+          :href="`#${index}`"
+        >
+          <v-icon>{{ tab.icon }}</v-icon>
+          {{ tab.name }}
+        </v-tab>
+      </v-tabs>
     </v-card>
+
+    <v-row class="justify-center">
+      <v-col cols="11">
+        <component
+          :is="tabs[currentTab].component"
+          v-if="tabs[currentTab]"
+          v-bind="{ schema, meta }"
+        />
+      </v-col>
+    </v-row>
   </div>
 </template>
 
-<script>
-import { mapState, mapGetters } from 'vuex';
-
-import { dandiUrl, VALIDATION_ICONS } from '@/utils/constants';
+<script lang="ts">
 import {
-  loggedIn, publishRest, user,
+  defineComponent, ref, computed, watch, ComputedRef,
+} from '@vue/composition-api';
+
+import moment from 'moment';
+
+import {
+  loggedIn as loggedInFunc, user as userFunc,
 } from '@/rest';
 
-import CopyText from '@/components/CopyText.vue';
-import _ from 'lodash';
-import DownloadDialog from './DownloadDialog.vue';
-import ListingComponent from './ListingComponent.vue';
+import { User, Version } from '@/types';
 
-export default {
+import AccessInformationTab from '@/components/DLP/AccessInformationTab.vue';
+import AssetSummaryTab from '@/components/DLP/AssetSummaryTab.vue';
+import ContributorsTab from '@/components/DLP/ContributorsTab.vue';
+import OverviewTab from '@/components/DLP/OverviewTab.vue';
+import RelatedResourcesTab from '@/components/DLP/RelatedResourcesTab.vue';
+import SubjectMatterTab from '@/components/DLP/SubjectMatterTab.vue';
+
+const tabs = [
+  {
+    name: 'Overview',
+    href: 'overview',
+    component: OverviewTab,
+  },
+  {
+    name: 'Contributors',
+    href: 'contributors',
+    component: ContributorsTab,
+    icon: 'mdi-account',
+  },
+  {
+    name: 'Subject Matter',
+    href: 'subject-matter',
+    component: SubjectMatterTab,
+    icon: 'mdi-notebook-outline',
+  },
+  {
+    name: 'Access Information',
+    href: 'access-information',
+    component: AccessInformationTab,
+    icon: 'mdi-account-question',
+  },
+  {
+    name: 'Asset Summary',
+    href: 'asset-summary',
+    component: AssetSummaryTab,
+    icon: 'mdi-clipboard-list',
+  },
+  {
+    name: 'Related Resources',
+    href: 'related-resources',
+    component: RelatedResourcesTab,
+    icon: 'mdi-book',
+  },
+];
+
+export default defineComponent({
   name: 'DandisetMain',
   components: {
-    CopyText,
-    DownloadDialog,
-    ListingComponent,
+    AccessInformationTab,
+    AssetSummaryTab,
+    ContributorsTab,
+    OverviewTab,
+    RelatedResourcesTab,
+    SubjectMatterTab,
   },
   props: {
     schema: {
@@ -377,142 +196,48 @@ export default {
       required: true,
     },
   },
-  data() {
+  setup(props, ctx) {
+    const { schema, meta, userCanModifyDandiset } = props;
+    const titleClasses = 'mx-1';
+    const mainFields = ['name', 'description', 'identifier'];
+
+    const store = ctx.root.$store;
+
+    const currentDandiset: ComputedRef<Version> = computed(
+      () => store.state.dandiset.publishDandiset,
+    );
+    const versions: ComputedRef<Version[]> = computed(
+      () => store.state.dandiset.versions,
+    );
+    const user: ComputedRef<User|null> = computed(userFunc);
+    const loggedIn: ComputedRef<boolean> = computed(loggedInFunc);
+
+    const contributers = computed(
+      () => meta.contributor.filter(
+        (author: any) => author.schemaKey === 'Person' && author.includeInCitation,
+      ).map((author: any) => author.name), // TODO: just map it to author's name for now
+    );
+
+    const currentTab = ref(null);
+
+    function formatDate(date: string) {
+      return moment(date).format('LL');
+    }
+
+    watch(currentTab, () => console.log(currentTab.value));
+
     return {
-      titleClasses: 'mx-1',
-      mainFields: [
-        'name',
-        'description',
-        'identifier',
-      ],
+      titleClasses,
+      mainFields,
+      currentDandiset,
+      versions,
+      user,
+      loggedIn,
+      contributers,
+      formatDate,
+      currentTab,
+      tabs,
     };
   },
-  computed: {
-    loggedIn,
-    user,
-    contributors() {
-      // eslint-disable-next-line no-console
-      const persons = _.filter(this.meta.contributor, (author) => author.schemaKey === 'Person' && author.includeInCitation);
-      const authors = _.map(persons, (author, index) => {
-        let affiliations = '';
-        let orcid_id = author.identifier;
-        if (!_.isEmpty(author.affiliation)) {
-          affiliations = _.map(author.affiliation, (a) => a.name);
-          affiliations = affiliations.join(', ');
-        }
-        let author_name = author.name;
-        if (index < persons.length - 1) {
-          author_name = `${author.name};`;
-        }
-        if (orcid_id) {
-          orcid_id = `https://orcid.org/${orcid_id}`;
-        }
-        return { name: author_name, identifier: orcid_id, affiliation: affiliations };
-      });
-      return authors;
-    },
-    publishDisabledMessage() {
-      if (!this.loggedIn) {
-        return 'You must be logged in to edit.';
-      }
-      if (!this.userCanModifyDandiset) {
-        return 'You do not have permission to edit this dandiset.';
-      }
-      if (this.publishDandiset.status === 'Pending') {
-        return 'This dandiset has not yet been validated.';
-      }
-      if (this.publishDandiset.status === 'Validating') {
-        return 'Currently validating this dandiset.';
-      }
-      if (this.publishDandiset.status === 'Published') {
-        return 'No changes since last publish.';
-      }
-
-      return null;
-    },
-    publishDisabled() {
-      return !!(this.publishDandiset.version_validation_errors.length
-        || this.publishDandiset.asset_validation_errors.length
-        || this.publishDisabledMessage);
-    },
-    metadataButtonText() {
-      return this.userCanModifyDandiset ? 'Edit metadata' : 'View metadata';
-    },
-    metadataButtonIcon() {
-      return this.userCanModifyDandiset ? 'mdi-pencil' : 'mdi-eye';
-    },
-    fileBrowserLink() {
-      const { version } = this;
-      const { identifier } = this.publishDandiset.dandiset;
-      // TODO: this probably does not work correctly yet
-      return {
-        name: 'fileBrowser',
-        params: { identifier, version },
-        query: {
-          location: '',
-        },
-      };
-    },
-    permalink() {
-      return `${dandiUrl}/dandiset/${this.publishDandiset.dandiset.identifier}/${this.version}`;
-    },
-    extraFields() {
-      const { meta, mainFields } = this;
-      let extra = Object.keys(meta).filter(
-        (x) => !mainFields.includes(x) && x in this.schema.properties,
-      );
-      const remove_list = ['citation', 'repository', 'url', 'schemaVersion', 'version', 'id', 'keywords', 'schemaKey'];
-      extra = extra.filter((n) => !remove_list.includes(n));
-      const extra_obj = extra.reduce((obj, key) => ({ ...obj, [key]: meta[key] }), {});
-      extra_obj.contributor = _.filter(meta.contributor, (author) => author.schemaKey !== 'Person');
-      delete extra_obj.assetsSummary.schemaKey;
-      delete extra_obj.assetsSummary.numberOfBytes;
-      delete extra_obj.assetsSummary.numberOfFiles;
-      _.forEach(extra_obj, (val) => {
-        if (Array.isArray(val) && val.length !== 0) {
-          val.forEach((each_val) => {
-            if (Object.prototype.hasOwnProperty.call(each_val, 'schemaKey')) {
-              /* eslint no-param-reassign:["error",
-              {"ignorePropertyModificationsFor":["each_val"] }] */
-              delete each_val.schemaKey;
-            }
-          });
-        }
-      });
-      return extra_obj;
-    },
-    schemaPropertiesCopy() {
-      const schema_copy = JSON.parse(JSON.stringify(this.schema.properties));
-      schema_copy.contributor.title = 'Funding Information';
-      return schema_copy;
-    },
-    ...mapState('dandiset', {
-      publishDandiset: (state) => state.publishDandiset,
-    }),
-    ...mapGetters('dandiset', ['version']),
-  },
-  methods: {
-    async publish() {
-      const version = await publishRest.publish(this.publishDandiset.dandiset.identifier);
-      // re-initialize the dataset to load the newly published version
-      await this.$store.dispatch('dandiset/initializeDandisets', { identifier: version.dandiset.identifier, version: version.version });
-    },
-    renderData(data, schema) {
-      if (data === null || _.isEmpty(data)) {
-        return false;
-      }
-      if (schema.type === 'array' && Array.isArray(data) && data.length === 0) {
-        return false;
-      }
-      return true;
-    },
-    getValidationErrorIcon(errorField) {
-      const icons = Object.keys(VALIDATION_ICONS).filter((field) => errorField.includes(field));
-      if (icons.length > 0) {
-        return VALIDATION_ICONS[icons[0]];
-      }
-      return VALIDATION_ICONS.DEFAULT;
-    },
-  },
-};
+});
 </script>
