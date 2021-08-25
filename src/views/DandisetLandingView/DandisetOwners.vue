@@ -1,6 +1,5 @@
 <template>
-  <v-card class="flex-grow-0">
-    <v-card-title>Manage Ownership</v-card-title>
+  <div>
     <template v-if="!owners || !owners.length">
       <v-row
         align="center"
@@ -11,7 +10,7 @@
       </v-row>
     </template>
     <template v-else>
-      <v-row class="mx-1 px-6">
+      <v-row class="mx-1 px-1">
         <v-autocomplete
           v-model="selection"
           :items="items"
@@ -21,7 +20,7 @@
           clearable
           auto-select-first
           item-text="result"
-          placeholder="Search by first name, last name or username"
+          placeholder="enter email address"
           outlined
           flat
           return-object
@@ -29,53 +28,20 @@
         />
       </v-row>
       <v-row class="mx-1">
-        <v-list
-          width="100%"
-          style="overflow-y: auto;"
-          class="px-6"
-          max-height="50vh"
+        <v-chip
+          v-for="(owner, i) in newOwners"
+          :key="i"
+          color="light-blue lighten-4"
+          text-color="light-blue darken-3"
+          class="font-weight-medium ma-1"
+          :close="userCanModifyDandiset"
+          @click:close="removeOwner(i)"
         >
-          <template v-for="(owner, i) in newOwners">
-            <v-list-item :key="owner.username">
-              <v-list-item-title>
-                {{ owner.result }}
-              </v-list-item-title>
-              <v-list-item-action>
-                <v-btn
-                  icon
-                  @click="removeOwner(i)"
-                >
-                  <v-icon>mdi-close</v-icon>
-                </v-btn>
-              </v-list-item-action>
-            </v-list-item>
-            <v-divider :key="`${owner.username}-divider`" />
-          </template>
-        </v-list>
+          {{ owner.name || owner.username }}
+        </v-chip>
       </v-row>
     </template>
-    <v-row
-      justify="end"
-      align="end"
-      class="mx-1 pt-4 pb-2"
-    >
-      <v-btn
-        tile
-        text
-        @click="close"
-      >
-        Cancel
-      </v-btn>
-      <v-btn
-        tile
-        text
-        color="primary"
-        @click="save"
-      >
-        Save Changes
-      </v-btn>
-    </v-row>
-  </v-card>
+  </div>
 </template>
 
 <script>
@@ -87,7 +53,7 @@ import _ from 'lodash';
 const appendResult = (users) => users.map((u) => ({ ...u, result: (u.name) ? `${u.name} (${u.username})` : u.username }));
 
 export default {
-  name: 'DandisetOwnersDialog',
+  name: 'DandisetOwners',
   props: {
     owners: {
       type: Array,
@@ -104,12 +70,25 @@ export default {
       throttledUpdate: _.debounce(this.updateItems, 200),
     };
   },
+  asyncComputed: {
+    async userCanModifyDandiset() {
+      if (this.publishDandiset?.metadata?.version !== 'draft' || !user()) {
+        return false;
+      }
+      if (user.value?.admin) {
+        return true;
+      }
+      const { data: owners } = await publishRest.owners(this.publishDandiset.dandiset.identifier);
+      const userExists = owners.find((owner) => owner.username === user().username);
+      return !!userExists;
+    },
+  },
   computed: {
     user,
     ...mapState('dandiset', ['publishDandiset']),
   },
   watch: {
-    selection(val) {
+    async selection(val) {
       // Verify that the selected user hasn't already been selected
       if (val && !this.newOwners.find((x) => x.username === val.username)) {
         this.newOwners.push(val);
@@ -118,6 +97,8 @@ export default {
       if (val) {
         this.selection = '';
       }
+
+      await this.save();
     },
   },
   methods: {
@@ -129,17 +110,14 @@ export default {
       this.items = appendResult(users);
       this.loadingUsers = false;
     },
-    removeOwner(index) {
+    async removeOwner(index) {
       this.newOwners.splice(index, 1);
-    },
-    close() {
-      this.$emit('close');
+      await this.save();
     },
     async save() {
       const { identifier } = this.publishDandiset.dandiset;
       const { data } = await publishRest.setOwners(identifier, this.newOwners);
       this.setOwners(data);
-      this.close();
     },
     ...mapMutations('dandiset', ['setOwners']),
   },
