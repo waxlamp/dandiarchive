@@ -21,7 +21,7 @@
               <v-btn
                 id="download"
                 outlined
-                style="width: 100%"
+                block
                 v-on="on"
               >
                 <v-icon
@@ -48,7 +48,7 @@
               <v-btn
                 id="download"
                 outlined
-                style="width: 100%"
+                block
                 v-on="on"
               >
                 <v-icon
@@ -73,7 +73,7 @@
               <v-btn
                 id="download"
                 outlined
-                style="width: 100%"
+                block
                 v-on="on"
               >
                 <v-icon
@@ -98,8 +98,7 @@
         <v-row no-gutters>
           <v-btn
             outlined
-            style="width: 100%"
-            v-on="on"
+            block
           >
             <v-icon
               left
@@ -115,13 +114,12 @@
           <v-btn
             outlined
             style="width: 100%"
-            v-on="on"
           >
             <v-icon
               left
               color="primary"
             >
-              mdi-folder
+              mdi-note-text
             </v-icon>
             Metadata
             <v-spacer />
@@ -149,39 +147,65 @@
           @close="ownerDialog = false"
         />
       </v-row>
-      <!-- <v-row>
-        <v-col class="pa-0">
-          <v-card
-            color="grey lighten-2"
-            tile
-            flat
-          >
-            <div class="py-1 px-3">
-              Versions
-            </div>
-          </v-card>
+    </v-card>
+    <v-card
+      outlined
+      class="mt-4 pa-3"
+    >
+      <v-row
+        class="mb-4"
+        no-gutters
+      >
+        <v-btn
+          block
+          color="success"
+        >
+          Publish
+          <v-spacer />
+          <v-icon>mdi-upload</v-icon>
+        </v-btn>
+      </v-row>
+      <v-row>
+        <v-subheader>
+          This Version
+        </v-subheader>
+      </v-row>
+      <v-row
+        class="pa-2 mb-5 text-body-2 align-center"
+        style="border-top: thin solid rgba(0, 0, 0, 0.12);
+               border-bottom: thin solid rgba(0, 0, 0, 0.12);"
+      >
+        <v-col cols="5">
+          {{ formatDate(currentVersion.modified) }}
+        </v-col>
+        <v-col>
+          <h3>{{ currentVersion.toUpperCase() }}</h3>
         </v-col>
       </v-row>
       <v-row>
-        <v-timeline dense>
-          <v-timeline-item
-            v-for="version in versions"
-            :key="version.version"
-            small
-            right
-            :color="timelineVersionItemColor(version)"
-          >
-            <v-btn
-              text
-              class="font-weight-medium"
-              @click="setVersion(version)"
-            >
-              {{ version.version }}
-            </v-btn>
-          </v-timeline-item>
-        </v-timeline>
+        <v-subheader>
+          Other Versions
+        </v-subheader>
       </v-row>
-    </v-card> -->
+      <v-row
+        v-for="(version, i) in otherVersions"
+        :key="i"
+        class="pa-2 text-body-2 align-center"
+        style="border-top: thin solid rgba(0, 0, 0, 0.12);
+               border-bottom: thin solid rgba(0, 0, 0, 0.12);"
+      >
+        <v-col cols="5">
+          {{ formatDate(version.modified) }}
+        </v-col>
+        <v-col>
+          <v-btn
+            outlined
+            @click="setVersion(version)"
+          >
+            {{ version.version.toUpperCase() }}
+          </v-btn>
+        </v-col>
+      </v-row>
     </v-card>
   </div>
 </template>
@@ -225,11 +249,15 @@ export default defineComponent({
       () => store.state.dandiset.publishDandiset,
     );
     const owners: ComputedRef<User[]> = computed(() => store.state.dandiset.owners);
-    const versions: ComputedRef<Version[]> = computed(
-      () => store.state.dandiset.versions,
-    );
-    const currentVersion: ComputedRef<Version> = computed(
+
+    const currentVersion: ComputedRef<string> = computed(
       () => store.getters['dandiset/version'],
+    );
+    console.log(currentVersion.value);
+    const otherVersions: ComputedRef<Version[]> = computed(
+      () => store.state.dandiset.versions.filter(
+        (version: Version) => version.version !== currentVersion.value,
+      ),
     );
 
     const stats: Ref<any> = ref(null);
@@ -248,12 +276,16 @@ export default defineComponent({
       return `${date} at ${time}`;
     }
 
+    function formatDate(date: string) {
+      return moment(date).format('MM/DD/YYYY');
+    }
+
     const user: ComputedRef<User|null> = computed(userFunc);
     const loggedIn = computed(loggedInFunc);
     const created = computed(() => formatDateTime(currentDandiset.value.created));
     const lastModified = computed(() => formatDateTime(currentDandiset.value.modified));
     const contactName = computed(() => currentDandiset.value.dandiset.contact_person);
-    const draftDandiset = computed(() => currentVersion.value.version === draftVersion);
+    const draftDandiset = computed(() => currentVersion.value === draftVersion);
     const manageOwnersDisabled: ComputedRef<boolean> = computed(() => {
       if (!loggedIn || !owners.value) return true;
       return !owners.value.find((owner: User) => owner.username === user.value?.username);
@@ -284,12 +316,14 @@ export default defineComponent({
             version,
           },
         } as RawLocation);
+
+        store.dispatch('dandiset/fetchPublishDandiset', { identifier: currentDandiset.value.dandiset.identifier, version: newVersion });
       }
     }
 
-    function timelineVersionItemColor({ version }: any): string {
-      if (currentDandiset.value && version === currentDandiset.value.version) { return 'primary'; }
-      if (!currentDandiset.value && version === draftVersion) {
+    function timelineVersionItemColor(version: Version): string {
+      if (currentDandiset.value && version.version === currentDandiset.value.version) { return 'primary'; }
+      if (!currentDandiset.value && version.version === draftVersion) {
         return 'amber darken-4';
       }
 
@@ -304,8 +338,8 @@ export default defineComponent({
       ownerDialogKey,
       currentDandiset,
       owners,
-      versions,
       currentVersion,
+      otherVersions,
       stats,
       user,
       loggedIn,
@@ -319,6 +353,7 @@ export default defineComponent({
       formattedSize,
       setVersion,
       timelineVersionItemColor,
+      formatDate,
     };
   },
 });

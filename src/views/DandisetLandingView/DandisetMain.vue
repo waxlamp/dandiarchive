@@ -78,7 +78,15 @@
               </v-chip>
             </v-card-text>
             <v-card-text>
-              License: {{ meta.license[0] }}
+              Licenses:
+              <v-chip
+                v-for="license in meta.license"
+                :key="license"
+                small
+                style="margin: 5px;"
+              >
+                {{ license }}
+              </v-chip>
             </v-card-text>
           </v-card>
         </v-col>
