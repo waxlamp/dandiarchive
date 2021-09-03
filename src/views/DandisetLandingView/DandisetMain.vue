@@ -139,7 +139,7 @@ import {
 
 import moment from 'moment';
 
-import { Version } from '@/types';
+import { DandisetMetadata, Version } from '@/types';
 
 import AccessInformationTab from '@/components/DLP/AccessInformationTab.vue';
 import AssetSummaryTab from '@/components/DLP/AssetSummaryTab.vue';
@@ -195,16 +195,16 @@ export default defineComponent({
       type: Object,
       required: true,
     },
-    meta: {
-      type: Object,
-      required: true,
-    },
   },
   setup(props, ctx) {
     const store = ctx.root.$store;
 
     const currentDandiset: ComputedRef<Version> = computed(
       () => store.state.dandiset.publishDandiset,
+    );
+
+    const meta: ComputedRef<DandisetMetadata|undefined> = computed(
+      () => currentDandiset.value.metadata,
     );
 
     const currentTab: Ref<string> = ref('');
@@ -218,6 +218,7 @@ export default defineComponent({
       formatDate,
       currentTab,
       tabs,
+      meta,
     };
   },
 });
