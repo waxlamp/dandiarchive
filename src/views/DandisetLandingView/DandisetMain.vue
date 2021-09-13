@@ -133,14 +133,14 @@
 
 <script lang="ts">
 import {
-  defineComponent, ref, computed, ComputedRef, Ref,
+  defineComponent, ref, computed,
 } from '@vue/composition-api';
 
 import moment from 'moment';
 
 import _ from 'lodash';
 
-import { Version } from '@/types';
+import store from '@/store';
 
 import ListingComponent from './ListingComponent.vue';
 
@@ -168,15 +168,12 @@ export default defineComponent({
       required: true,
     },
   },
-  setup(props, ctx) {
+  setup(props) {
     const { meta, schema } = props;
-    const store = ctx.root.$store;
 
-    const currentDandiset: ComputedRef<Version> = computed(
-      () => store.state.dandiset.publishDandiset,
-    );
+    const currentDandiset = computed(() => store.state.dandiset.publishDandiset);
 
-    const currentTab: Ref<string> = ref('');
+    const currentTab = ref('');
 
     function formatDate(date: string): string {
       return moment(date).format('LL');

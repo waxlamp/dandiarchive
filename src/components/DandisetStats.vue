@@ -32,7 +32,7 @@ import {
 
 import filesize from 'filesize';
 
-import { Version } from '@/types';
+import store from '@/store';
 
 interface DandisetStats {
   asset_count: number,
@@ -41,12 +41,8 @@ interface DandisetStats {
 
 export default defineComponent({
   name: 'DandisetStats',
-  setup(props, ctx) {
-    const store = ctx.root.$store;
-
-    const currentDandiset: ComputedRef<Version> = computed(
-      () => store.state.dandiset.publishDandiset,
-    );
+  setup() {
+    const currentDandiset = computed(() => store.state.dandiset.publishDandiset);
 
     const stats: ComputedRef<DandisetStats|null> = computed(() => {
       if (!currentDandiset.value) {

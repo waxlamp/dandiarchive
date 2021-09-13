@@ -85,7 +85,8 @@ import { debounce } from 'lodash';
 
 import { draftVersion } from '@/utils/constants';
 import { publishRest, loggedIn as loggedInFunc } from '@/rest';
-import { User, Version } from '@/types';
+import store from '@/store';
+import { User } from '@/types';
 
 interface UserResult extends User {
   result: string
@@ -102,33 +103,29 @@ export default defineComponent({
       required: true,
     },
   },
-  setup(props, ctx) {
-    const search: Ref<string> = ref('');
-    const loadingUsers: Ref<boolean> = ref(false);
+  setup() {
+    const currentDandiset = computed(() => store.state.dandiset.publishDandiset);
+    const owners = computed(() => store.state.dandiset.owners);
+
+    const search = ref('');
+    const loadingUsers = ref(false);
     const selection: Ref<UserResult|null> = ref(null);
-    const items: Ref<UserResult[]> = ref([]);
-
-    const store = ctx.root.$store;
-
-    const currentDandiset: ComputedRef<Version> = computed(
-      () => store.state.dandiset.publishDandiset,
-    );
-    const owners: ComputedRef<User[]> = computed(
-      () => store.state.dandiset.owners,
-    );
+    const items: Ref<User[]> = ref([]);
 
     const newOwners: UserResult[] = reactive([]);
-    watch(owners, () => Object.assign(newOwners, appendResult(owners.value)), { immediate: true });
+    watch(() => owners.value, () => (
+      owners.value ? Object.assign(newOwners, appendResult(owners.value)) : null),
+    { immediate: true });
 
     const loggedIn: ComputedRef<boolean> = computed(loggedInFunc);
 
-    const showOwnerSearchBox: ComputedRef<boolean> = computed(
+    const showOwnerSearchBox = computed(
       // Only show the search box to logged in users on DRAFT versions
-      () => loggedIn.value && currentDandiset.value.version === draftVersion,
+      () => loggedIn.value && currentDandiset.value?.version === draftVersion,
     );
 
     function setOwners(ownersToSet: User[]) {
-      store.commit('dandiset/setOwners', ownersToSet);
+      store.commit.setOwners(ownersToSet);
     }
 
     const throttledUpdate = debounce((async () => {
@@ -141,9 +138,11 @@ export default defineComponent({
     }), 200);
 
     async function save() {
-      const { identifier } = currentDandiset.value.dandiset;
-      const { data } = await publishRest.setOwners(identifier, newOwners);
-      setOwners(data);
+      if (currentDandiset.value?.dandiset) {
+        const { identifier } = currentDandiset.value.dandiset;
+        const { data } = await publishRest.setOwners(identifier, newOwners);
+        setOwners(data);
+      }
     }
 
     async function removeOwner(index: number) {
