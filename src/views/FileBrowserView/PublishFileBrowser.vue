@@ -201,7 +201,6 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
 import filesize from 'filesize';
 import { publishRest } from '@/rest';
 
@@ -271,7 +270,9 @@ export default {
       return this.me && this.owners.includes(this.me);
     },
 
-    ...mapState('dandiset', ['publishDandiset']),
+    publishDandiset() {
+      return this.$store.direct.state.dandiset.publishDandiset;
+    },
   },
   asyncComputed: {
     items: {
