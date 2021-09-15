@@ -270,8 +270,8 @@ export default {
       return this.me && this.owners.includes(this.me);
     },
 
-    publishDandiset() {
-      return this.$store.direct.state.dandiset.publishDandiset;
+    currentDandiset() {
+      return this.$store.direct.state.dandiset.dandiset;
     },
   },
   asyncComputed: {

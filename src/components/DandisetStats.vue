@@ -42,7 +42,7 @@ interface DandisetStats {
 export default defineComponent({
   name: 'DandisetStats',
   setup() {
-    const currentDandiset = computed(() => store.state.dandiset.publishDandiset);
+    const currentDandiset = computed(() => store.state.dandiset.dandiset);
 
     const stats: ComputedRef<DandisetStats|null> = computed(() => {
       if (!currentDandiset.value) {

@@ -275,7 +275,7 @@ export default defineComponent({
     },
   },
   setup(props, ctx) {
-    const currentDandiset = computed(() => store.state.dandiset.publishDandiset);
+    const currentDandiset = computed(() => store.state.dandiset.dandiset);
     const currentVersion = computed(() => store.getters.version);
 
     const otherVersions: ComputedRef<Version[]|undefined> = computed(
@@ -348,7 +348,7 @@ export default defineComponent({
           },
         } as RawLocation);
 
-        store.dispatch.fetchPublishDandiset({
+        store.dispatch.fetchDandiset({
           identifier: currentDandiset.value?.dandiset.identifier,
           version: newVersion,
         });

@@ -8,7 +8,7 @@ import { User, Version } from '@/types';
 import { draftVersion } from '@/utils/constants';
 
 interface DandisetState {
-  publishDandiset: Version|null;
+  dandiset: Version|null;
   versions: Version[]|null,
   loading: boolean,
   owners: User[]|null,
@@ -17,7 +17,7 @@ interface DandisetState {
 
 const dandisetModule = defineModule({
   state: {
-    publishDandiset: null,
+    dandiset: null,
     versions: null,
     loading: false, // No mutation, as we don't want this mutated by the user
     owners: null,
@@ -25,14 +25,14 @@ const dandisetModule = defineModule({
   } as DandisetState,
   getters: {
     version(state: DandisetState): string {
-      if (state.publishDandiset) {
-        return state.publishDandiset.version;
+      if (state.dandiset) {
+        return state.dandiset.version;
       }
       return draftVersion;
     },
     userCanModifyDandiset(state: DandisetState): boolean {
       // published versions are never editable, and logged out users can never edit a dandiset
-      if (state.publishDandiset?.metadata?.version !== draftVersion || !user()) {
+      if (state.dandiset?.metadata?.version !== draftVersion || !user()) {
         return false;
       }
       // if they're an admin, they can edit any dandiset
@@ -45,8 +45,8 @@ const dandisetModule = defineModule({
     },
   },
   mutations: {
-    setPublishDandiset(state: DandisetState, dandiset: Version) {
-      state.publishDandiset = dandiset;
+    setDandiset(state: DandisetState, dandiset: Version) {
+      state.dandiset = dandiset;
     },
     setVersions(state: DandisetState, versions: Version[]) {
       state.versions = versions;
@@ -60,7 +60,7 @@ const dandisetModule = defineModule({
   },
   actions: {
     async uninitializeDandisets({ state, commit }) {
-      commit('setPublishDandiset', null);
+      commit('setDandiset', null);
       commit('setVersions', null);
       commit('setOwners', null);
       state.loading = false;
@@ -70,7 +70,7 @@ const dandisetModule = defineModule({
 
       // this can be done concurrently, don't await
       dispatch('fetchDandisetVersions', { identifier });
-      await dispatch('fetchPublishDandiset', { identifier, version });
+      await dispatch('fetchDandiset', { identifier, version });
       await dispatch('fetchOwners', identifier);
     },
     async fetchDandisetVersions({ state, commit }, { identifier }) {
@@ -84,7 +84,7 @@ const dandisetModule = defineModule({
 
       state.loading = false;
     },
-    async fetchPublishDandiset({ state, commit }, { identifier, version }) {
+    async fetchDandiset({ state, commit }, { identifier, version }) {
       state.loading = true;
 
       const sanitizedVersion = version
@@ -92,9 +92,9 @@ const dandisetModule = defineModule({
 
       try {
         const data = await dandiRest.specificVersion(identifier, sanitizedVersion);
-        commit('setPublishDandiset', data);
+        commit('setDandiset', data);
       } catch (err) {
-        commit('setPublishDandiset', null);
+        commit('setDandiset', null);
       }
 
       state.loading = false;

@@ -34,7 +34,7 @@ export default defineComponent({
     CopyText,
   },
   setup() {
-    const currentDandiset = computed(() => store.state.dandiset.publishDandiset);
+    const currentDandiset = computed(() => store.state.dandiset.dandiset);
     const currentVersion = computed(() => store.getters.version);
 
     const permalink = computed(() => {

@@ -1,6 +1,6 @@
 <template>
   <v-progress-linear
-    v-if="!publishDandiset"
+    v-if="!currentDandiset"
     indeterminate
   />
   <PublishFileBrowser
@@ -35,20 +35,20 @@ export default {
     };
   },
   computed: {
-    publishDandiset() {
-      return this.$store.direct.state.dandiset.publishDandiset;
+    currentDandiset() {
+      return this.$store.direct.state.dandiset.dandiset;
     },
   },
   async created() {
-    // Don't extract publishDandiset, for reactivity
+    // Don't extract currentDandiset, for reactivity
     const { identifier, version } = this;
-    if (!this.publishDandiset) {
-      this.fetchPublishDandiset({ identifier, version });
+    if (!this.currentDandiset) {
+      this.fetchDandiset({ identifier, version });
     }
   },
   methods: {
-    fetchPublishDandiset() {
-      this.$store.direct.dispatch.fetchPublishDandiset({
+    fetchDandiset() {
+      this.$store.direct.dispatch.fetchDandiset({
         identifier: this.identifier,
         version: this.version,
       });
