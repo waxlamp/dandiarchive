@@ -84,7 +84,7 @@ import {
 import { debounce } from 'lodash';
 
 import { draftVersion } from '@/utils/constants';
-import { publishRest, loggedIn as loggedInFunc } from '@/rest';
+import { dandiRest, loggedIn as loggedInFunc } from '@/rest';
 import store from '@/store';
 import { User } from '@/types';
 
@@ -132,7 +132,7 @@ export default defineComponent({
       if (!search.value) return;
 
       loadingUsers.value = true;
-      const users = await publishRest.searchUsers(search.value);
+      const users = await dandiRest.searchUsers(search.value);
       items.value = appendResult(users);
       loadingUsers.value = false;
     }), 200);
@@ -140,7 +140,7 @@ export default defineComponent({
     async function save() {
       if (currentDandiset.value?.dandiset) {
         const { identifier } = currentDandiset.value.dandiset;
-        const { data } = await publishRest.setOwners(identifier, newOwners);
+        const { data } = await dandiRest.setOwners(identifier, newOwners);
         setOwners(data);
       }
     }

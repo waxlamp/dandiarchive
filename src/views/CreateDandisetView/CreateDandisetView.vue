@@ -40,7 +40,7 @@
 </template>
 
 <script>
-import { publishRest, loggedIn } from '@/rest';
+import { dandiRest, loggedIn } from '@/rest';
 
 export default {
   name: 'CreateDandisetView',
@@ -63,7 +63,7 @@ export default {
   methods: {
     async registerDandiset() {
       const { name, description } = this;
-      const { data } = await publishRest.createDandiset(name, description);
+      const { data } = await dandiRest.createDandiset(name, description);
       const { identifier } = data;
       this.$router.push({
         name: 'dandisetLanding',

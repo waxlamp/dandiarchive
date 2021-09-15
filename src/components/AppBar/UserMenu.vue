@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import { publishRest, user } from '@/rest';
+import { dandiRest, user } from '@/rest';
 import ApiKeyItem from '@/components/AppBar/ApiKeyItem.vue';
 
 export default {
@@ -71,7 +71,7 @@ export default {
   },
   methods: {
     async logout() {
-      await publishRest.logout();
+      await dandiRest.logout();
     },
   },
 };

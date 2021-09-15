@@ -21,7 +21,7 @@
 
 <script>
 import CopyText from '@/components/CopyText.vue';
-import { publishRest } from '@/rest';
+import { dandiRest } from '@/rest';
 
 export default {
   name: 'ApiKeyItem',
@@ -39,11 +39,11 @@ export default {
   methods: {
     // gets the logged-in user's existing API key (and creates one if it doesn't exist)
     async fetchApiKey() {
-      this.apiKey = await publishRest.getApiKey();
+      this.apiKey = await dandiRest.getApiKey();
     },
     // gets a new API key for the logged-in user and deletes the old one
     async refreshApiKey() {
-      this.apiKey = await publishRest.newApiKey();
+      this.apiKey = await dandiRest.newApiKey();
     },
   },
 };

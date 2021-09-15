@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { publishRest } from '@/rest';
+import { dandiRest } from '@/rest';
 import filesize from 'filesize';
 import SingleStat from '@/views/HomeView/SingleStat.vue';
 
@@ -61,7 +61,7 @@ export default {
     },
   },
   async created() {
-    const data = await publishRest.stats();
+    const data = await dandiRest.stats();
     this.dandisets = data.dandiset_count;
     this.users = data.user_count;
     this.size = data.size;

@@ -122,7 +122,7 @@
 
 <script>
 import {
-  cookiesEnabled, loggedIn, insideIFrame, publishRest,
+  cookiesEnabled, loggedIn, insideIFrame, dandiRest,
 } from '@/rest';
 import { dandiAboutUrl, dandiDocumentationUrl, dandiHelpUrl } from '@/utils/constants';
 import UserMenu from '@/components/AppBar/UserMenu.vue';
@@ -179,7 +179,7 @@ export default {
   },
   methods: {
     login() {
-      publishRest.login();
+      dandiRest.login();
     },
   },
 };
